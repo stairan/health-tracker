@@ -19,8 +19,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create data directory
-RUN mkdir -p /data/exports
+# Create data directory and garth directory
+RUN mkdir -p /data/exports /data/.garth
+
+# Set environment variable for garth to store tokens
+ENV GARTH_HOME=/data/.garth
 
 # Expose port
 EXPOSE 8000
