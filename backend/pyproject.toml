@@ -1,0 +1,35 @@
+[project]
+name = "health-tracker"
+version = "1.0.0"
+description = "Health tracking application with Garmin integration"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "sqlalchemy",
+    "alembic",
+    "apscheduler",
+    "pandas",
+    "pyarrow",
+    "python-dotenv",
+    "pydantic",
+    "pydantic-settings",
+    "python-dateutil",
+    "cryptography",
+    "requests",
+    "cloudscraper",
+    # Note: garminconnect and its dependencies installed separately to avoid withings-sync build issues
+    # See requirements.txt for exact versions
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "ruff",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
