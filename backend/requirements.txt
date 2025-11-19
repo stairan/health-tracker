@@ -13,7 +13,7 @@ alembic==1.13.1
 garminconnect==0.2.19
 requests
 cloudscraper
-garth
+garth==0.4.46
 withings-sync<4.2.6
 
 # Scheduling
