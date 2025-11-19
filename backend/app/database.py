@@ -4,9 +4,10 @@ from sqlalchemy.pool import StaticPool
 from typing import Generator
 import os
 from pathlib import Path
+from app.config import settings
 
-# Get the database path from environment or use default
-DATABASE_DIR = os.getenv("DATABASE_DIR", "./data")
+# Get the database path from settings
+DATABASE_DIR = settings.database_dir
 DATABASE_PATH = os.path.join(DATABASE_DIR, "health_tracker.db")
 
 # Ensure the data directory exists
