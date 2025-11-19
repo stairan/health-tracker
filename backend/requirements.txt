@@ -10,10 +10,10 @@ alembic==1.13.1
 # Garmin integration
 # Note: Install garminconnect with --no-deps first, then install dependencies separately
 # withings-sync 4.2.6 has build issues, use <4.2.6
-garminconnect==0.2.19
+garminconnect==0.2.34
 requests
 cloudscraper
-garth==0.4.46
+garth==0.5.19
 withings-sync<4.2.6
 
 # Scheduling

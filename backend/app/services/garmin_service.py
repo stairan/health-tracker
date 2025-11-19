@@ -33,10 +33,19 @@ class GarminService:
             bool: True if login successful, False otherwise
         """
         try:
+            logger.info(f"Attempting to login to Garmin Connect with username: {self.username}")
+            logger.info(f"Password length: {len(self.password) if self.password else 0}")
+
             self.client = Garmin(self.username, self.password)
+            logger.info("Garmin client created, attempting login...")
+
             self.client.login()
             logger.info(f"Successfully logged in to Garmin Connect as {self.username}")
             return True
+        except AssertionError as e:
+            logger.error(f"Garmin login failed with AssertionError. This usually means authentication failed or profile couldn't be retrieved.", exc_info=True)
+            logger.error("Possible causes: incorrect credentials, Cloudflare blocking, or network issues")
+            return False
         except Exception as e:
             logger.error(f"Failed to login to Garmin Connect: {type(e).__name__}: {str(e)}", exc_info=True)
             return False
