@@ -38,7 +38,7 @@ class GarminService:
             logger.info(f"Successfully logged in to Garmin Connect as {self.username}")
             return True
         except Exception as e:
-            logger.error(f"Failed to login to Garmin Connect: {str(e)}")
+            logger.error(f"Failed to login to Garmin Connect: {type(e).__name__}: {str(e)}", exc_info=True)
             return False
 
     def get_daily_summary(self, sync_date: date) -> Optional[Dict]:
