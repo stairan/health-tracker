@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { format, parseISO } from 'date-fns'
-import { Plus, Trash2, Edit, Calendar, Thermometer } from 'lucide-react'
+import { format, parseISO, startOfYear, endOfYear, startOfMonth, endOfMonth, subYears } from 'date-fns'
+import { Plus, Trash2, Edit, Calendar, Thermometer, Filter } from 'lucide-react'
 import { createSicknessEntry, getSicknessEntries, updateSicknessEntry, deleteSicknessEntry } from '../api/client'
 
 const Sickness = () => {
   const queryClient = useQueryClient()
+  const [filterMode, setFilterMode] = useState('recent') // 'recent', 'year', 'month', 'day'
+  const [selectedYear, setSelectedYear] = useState(format(new Date(), 'yyyy'))
+  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'))
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [showForm, setShowForm] = useState(false)
   const [editingEntry, setEditingEntry] = useState(null)
@@ -19,11 +22,46 @@ const Sickness = () => {
     notes: '',
   })
 
-  // Fetch sickness entries for selected date
-  const { data: entries = [], isLoading } = useQuery({
-    queryKey: ['sickness', selectedDate],
-    queryFn: () => getSicknessEntries(selectedDate, selectedDate).then(res => res.data),
+  // Calculate date range based on filter mode
+  const getDateRange = () => {
+    switch (filterMode) {
+      case 'recent':
+        // Get last 10 years worth to ensure we get 20+ sickness entries
+        const tenYearsAgo = format(subYears(new Date(), 10), 'yyyy-MM-dd')
+        const today = format(new Date(), 'yyyy-MM-dd')
+        return { start: tenYearsAgo, end: today }
+
+      case 'year':
+        const yearStart = format(startOfYear(new Date(`${selectedYear}-01-01`)), 'yyyy-MM-dd')
+        const yearEnd = format(endOfYear(new Date(`${selectedYear}-01-01`)), 'yyyy-MM-dd')
+        return { start: yearStart, end: yearEnd }
+
+      case 'month':
+        const monthStart = format(startOfMonth(new Date(`${selectedMonth}-01`)), 'yyyy-MM-dd')
+        const monthEnd = format(endOfMonth(new Date(`${selectedMonth}-01`)), 'yyyy-MM-dd')
+        return { start: monthStart, end: monthEnd }
+
+      case 'day':
+        return { start: selectedDate, end: selectedDate }
+
+      default:
+        return { start: format(new Date(), 'yyyy-MM-dd'), end: format(new Date(), 'yyyy-MM-dd') }
+    }
+  }
+
+  // Fetch sickness entries based on filter mode
+  const { data: allEntries = [], isLoading } = useQuery({
+    queryKey: ['sickness', filterMode, selectedYear, selectedMonth, selectedDate],
+    queryFn: () => {
+      const { start, end } = getDateRange()
+      return getSicknessEntries(start, end).then(res => res.data)
+    },
   })
+
+  // For 'recent' mode, limit to last 20 entries
+  const entries = filterMode === 'recent'
+    ? allEntries.slice(0, 20)
+    : allEntries
 
   // Create mutation
   const createMutation = useMutation({
@@ -125,18 +163,101 @@ const Sickness = () => {
         </button>
       </div>
 
-      {/* Date Selector */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-          <Calendar className="w-4 h-4" />
-          View sickness entries for date:
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="ml-2 px-3 py-1 border border-gray-300 rounded-md"
-          />
-        </label>
+      {/* Filter Selector */}
+      <div className="bg-white rounded-lg shadow p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-600" />
+          <span className="text-sm font-medium text-gray-700">Filter sickness entries by:</span>
+        </div>
+
+        {/* Filter Mode Tabs */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilterMode('recent')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterMode === 'recent'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Last 20 Entries
+          </button>
+          <button
+            onClick={() => setFilterMode('year')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterMode === 'year'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Year
+          </button>
+          <button
+            onClick={() => setFilterMode('month')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterMode === 'month'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Month
+          </button>
+          <button
+            onClick={() => setFilterMode('day')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterMode === 'day'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Specific Day
+          </button>
+        </div>
+
+        {/* Conditional Date Selectors */}
+        {filterMode === 'year' && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Select year:</label>
+            <input
+              type="number"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              min="2000"
+              max={format(new Date(), 'yyyy')}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        {filterMode === 'month' && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Select month:</label>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        {filterMode === 'day' && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Select date:</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        {filterMode === 'recent' && (
+          <p className="text-sm text-gray-500">
+            Showing the most recent 20 sickness entries
+          </p>
+        )}
       </div>
 
       {/* Form */}
