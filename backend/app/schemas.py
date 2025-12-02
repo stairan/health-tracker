@@ -94,6 +94,46 @@ class Activity(ActivityBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# Food Database Schemas
+class FoodDatabaseBase(BaseModel):
+    name: str
+    serving_size: Optional[str] = None
+    calories: Optional[int] = None
+    protein_grams: Optional[float] = None
+    carbs_grams: Optional[float] = None
+    fat_grams: Optional[float] = None
+    is_drink: bool = False
+    volume_ml: Optional[int] = None
+
+
+class FoodDatabaseCreate(FoodDatabaseBase):
+    pass
+
+
+class FoodDatabaseUpdate(BaseModel):
+    name: Optional[str] = None
+    serving_size: Optional[str] = None
+    calories: Optional[int] = None
+    protein_grams: Optional[float] = None
+    carbs_grams: Optional[float] = None
+    fat_grams: Optional[float] = None
+    is_drink: Optional[bool] = None
+    volume_ml: Optional[int] = None
+    is_favorite: Optional[bool] = None
+
+
+class FoodDatabase(FoodDatabaseBase):
+    id: int
+    user_id: int
+    times_logged: int
+    last_used: Optional[datetime] = None
+    is_favorite: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # Food Entry Schemas
 class FoodEntryBase(BaseModel):
     date: date
@@ -110,7 +150,8 @@ class FoodEntryBase(BaseModel):
 
 
 class FoodEntryCreate(FoodEntryBase):
-    pass
+    food_database_id: Optional[int] = None
+    save_to_database: bool = True
 
 
 class FoodEntryUpdate(BaseModel):
@@ -129,6 +170,7 @@ class FoodEntryUpdate(BaseModel):
 class FoodEntry(FoodEntryBase):
     id: int
     user_id: int
+    food_database_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

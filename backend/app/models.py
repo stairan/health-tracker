@@ -106,12 +106,47 @@ class Activity(Base):
     user = relationship("User")
 
 
+class FoodDatabase(Base):
+    """Library of foods with nutritional info for quick logging"""
+    __tablename__ = "food_database"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    name = Column(String, nullable=False, index=True)  # "Chicken breast, grilled"
+
+    # Serving size
+    serving_size = Column(String)  # "100g" or "1 piece"
+
+    # Nutritional info (per serving)
+    calories = Column(Integer)
+    protein_grams = Column(Float)
+    carbs_grams = Column(Float)
+    fat_grams = Column(Float)
+
+    # For drinks
+    is_drink = Column(Boolean, default=False)
+    volume_ml = Column(Integer)
+
+    # Usage tracking
+    times_logged = Column(Integer, default=0)
+    last_used = Column(DateTime)
+    is_favorite = Column(Boolean, default=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User")
+
+
 class FoodEntry(Base):
     """Food and drink entries"""
     __tablename__ = "food_entries"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    food_database_id = Column(Integer, ForeignKey("food_database.id"), nullable=True)
     date = Column(Date, nullable=False, index=True)
     time = Column(DateTime, nullable=False)
 
@@ -134,6 +169,7 @@ class FoodEntry(Base):
 
     # Relationships
     user = relationship("User")
+    food_database = relationship("FoodDatabase")
 
 
 class Medication(Base):

@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, addDays, subDays } from 'date-fns'
-import { Plus, Trash2, Edit, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
-import { getFoodEntries, createFoodEntry, updateFoodEntry, deleteFoodEntry } from '../api/client'
+import { Plus, Trash2, Edit, ChevronLeft, ChevronRight, Search, Star, Book } from 'lucide-react'
+import { getFoodEntries, createFoodEntry, updateFoodEntry, deleteFoodEntry, getFoodDatabase, toggleFoodFavorite } from '../api/client'
 
 const FoodLog = () => {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editingEntry, setEditingEntry] = useState(null)
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [foodSearch, setFoodSearch] = useState('')
+  const [showFoodDatabase, setShowFoodDatabase] = useState(true)
+  const [selectedFoodId, setSelectedFoodId] = useState(null)
 
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -19,6 +22,7 @@ const FoodLog = () => {
     calories: '',
     volume_ml: '',
     notes: '',
+    save_to_database: true,
   })
 
   const { data: entries, isLoading } = useQuery({
@@ -29,33 +33,28 @@ const FoodLog = () => {
     },
   })
 
-  // Fetch recent unique food entries (last 30 days) for quick add
-  const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd')
-  const today = format(new Date(), 'yyyy-MM-dd')
-
-  const { data: recentEntries = [] } = useQuery({
-    queryKey: ['recentFoodEntries'],
+  // Fetch food database
+  const { data: foodDatabase = [] } = useQuery({
+    queryKey: ['foodDatabase', foodSearch],
     queryFn: async () => {
-      const response = await getFoodEntries(thirtyDaysAgo, today)
-      // Get unique entries based on description
-      const seen = new Map()
-      response.data.forEach(entry => {
-        const key = entry.description.toLowerCase()
-        if (!seen.has(key)) {
-          seen.set(key, entry)
-        }
-      })
-      return Array.from(seen.values()).slice(0, 10) // Show max 10 recent items
+      const response = await getFoodDatabase(foodSearch || null, null, false, 'frequent')
+      return response.data
     },
   })
+
+  // Get favorites from food database
+  const favoriteFoods = foodDatabase.filter(food => food.is_favorite)
+  const frequentFoods = foodDatabase.filter(food => !food.is_favorite).slice(0, 10)
 
   const createMutation = useMutation({
     mutationFn: createFoodEntry,
     onSuccess: () => {
       queryClient.invalidateQueries(['foodEntries'])
       queryClient.invalidateQueries(['todaySummary'])
-      queryClient.invalidateQueries(['recentFoodEntries'])
+      queryClient.invalidateQueries(['foodDatabase'])
       setShowForm(false)
+      setSelectedFoodId(null)
+      setFoodSearch('')
       setFormData({
         date: format(new Date(), 'yyyy-MM-dd'),
         time: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'),
@@ -65,6 +64,7 @@ const FoodLog = () => {
         calories: '',
         volume_ml: '',
         notes: '',
+        save_to_database: true,
       })
     },
   })
@@ -74,8 +74,11 @@ const FoodLog = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['foodEntries'])
       queryClient.invalidateQueries(['todaySummary'])
+      queryClient.invalidateQueries(['foodDatabase'])
       setShowForm(false)
       setEditingEntry(null)
+      setSelectedFoodId(null)
+      setFoodSearch('')
       setFormData({
         date: format(new Date(), 'yyyy-MM-dd'),
         time: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'),
@@ -85,6 +88,7 @@ const FoodLog = () => {
         calories: '',
         volume_ml: '',
         notes: '',
+        save_to_database: true,
       })
     },
   })
@@ -94,6 +98,13 @@ const FoodLog = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['foodEntries'])
       queryClient.invalidateQueries(['todaySummary'])
+    },
+  })
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: toggleFoodFavorite,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['foodDatabase'])
     },
   })
 
@@ -150,6 +161,8 @@ const FoodLog = () => {
         calories: formData.calories ? parseInt(formData.calories) : null,
         volume_ml: formData.volume_ml ? parseInt(formData.volume_ml) : null,
         notes: formData.notes || null,
+        food_database_id: selectedFoodId,
+        save_to_database: formData.save_to_database && !selectedFoodId,  // Only save if not from database
       }
       createMutation.mutate(createData)
     }
@@ -169,18 +182,26 @@ const FoodLog = () => {
     setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
   }
 
-  const quickAddFood = (entry) => {
+  const selectFoodFromDatabase = (foodItem) => {
+    setSelectedFoodId(foodItem.id)
     setFormData({
       date: selectedDate,
       time: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'),
-      meal_type: entry.meal_type,
-      description: entry.description,
-      is_drink: entry.is_drink,
-      calories: entry.calories || '',
-      volume_ml: entry.volume_ml || '',
-      notes: entry.notes || '',
+      meal_type: 'breakfast',  // User can change this
+      description: foodItem.name,
+      is_drink: foodItem.is_drink,
+      calories: foodItem.calories || '',
+      volume_ml: foodItem.volume_ml || '',
+      notes: '',
+      save_to_database: false,  // Already in database
     })
     setShowForm(true)
+    setShowFoodDatabase(false)
+  }
+
+  const handleToggleFavorite = (e, foodId) => {
+    e.stopPropagation()  // Prevent selecting the food when clicking star
+    toggleFavoriteMutation.mutate(foodId)
   }
 
   return (
@@ -188,7 +209,11 @@ const FoodLog = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-gray-900">Food & Drink Log</h2>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm)
+            setShowFoodDatabase(false)
+            setSelectedFoodId(null)
+          }}
           className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
         >
           <Plus className="w-5 h-5" />
@@ -229,26 +254,117 @@ const FoodLog = () => {
         </div>
       </div>
 
-      {/* Quick Add - Recent Foods */}
-      {!showForm && recentEntries.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-5 h-5 text-gray-600" />
-            <h3 className="text-sm font-medium text-gray-700">Quick Add - Recent Foods</h3>
+      {/* Food Database - Quick Add */}
+      {!showForm && showFoodDatabase && (
+        <div className="bg-white rounded-lg shadow p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Book className="w-5 h-5 text-gray-600" />
+              <h3 className="text-sm font-medium text-gray-700">My Food Database</h3>
+            </div>
+            <button
+              onClick={() => setShowFoodDatabase(false)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Hide
+            </button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {recentEntries.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => quickAddFood(entry)}
-                className="px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 text-sm flex items-center gap-2"
-              >
-                <span>{entry.description}</span>
-                {entry.calories && <span className="text-xs text-blue-600">({entry.calories} kcal)</span>}
-              </button>
-            ))}
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search foods..."
+              value={foodSearch}
+              onChange={(e) => setFoodSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
           </div>
+
+          {/* Favorites */}
+          {favoriteFoods.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                <span className="text-xs font-medium text-gray-600 uppercase">Favorites</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {favoriteFoods.map((food) => (
+                  <div key={food.id} className="relative group">
+                    <button
+                      onClick={() => selectFoodFromDatabase(food)}
+                      className="px-3 py-2 pr-8 bg-yellow-50 text-yellow-800 rounded-lg hover:bg-yellow-100 text-sm flex items-center gap-2 border border-yellow-200"
+                    >
+                      <span>{food.name}</span>
+                      {food.calories && <span className="text-xs text-yellow-600">({food.calories} kcal)</span>}
+                    </button>
+                    <button
+                      onClick={(e) => handleToggleFavorite(e, food.id)}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-yellow-200 transition-colors"
+                      title="Remove from favorites"
+                    >
+                      <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Frequent/All Foods */}
+          {frequentFoods.length > 0 && (
+            <div>
+              <span className="text-xs font-medium text-gray-600 uppercase block mb-2">
+                {foodSearch ? 'Search Results' : 'Most Used'}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {frequentFoods.map((food) => (
+                  <div key={food.id} className="relative group">
+                    <button
+                      onClick={() => selectFoodFromDatabase(food)}
+                      className="px-3 py-2 pr-8 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 text-sm flex items-center gap-2"
+                    >
+                      <span>{food.name}</span>
+                      {food.calories && <span className="text-xs text-blue-600">({food.calories} kcal)</span>}
+                      <span className="text-xs text-gray-500">×{food.times_logged}</span>
+                    </button>
+                    <button
+                      onClick={(e) => handleToggleFavorite(e, food.id)}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-blue-200 transition-colors"
+                      title={food.is_favorite ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <Star className={`w-4 h-4 ${food.is_favorite ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400'}`} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {foodDatabase.length === 0 && !foodSearch && (
+            <p className="text-sm text-gray-500 text-center py-4">
+              Your food database is empty. Add foods by logging them below!
+            </p>
+          )}
+
+          {foodDatabase.length === 0 && foodSearch && (
+            <p className="text-sm text-gray-500 text-center py-4">
+              No foods found matching "{foodSearch}"
+            </p>
+          )}
         </div>
+      )}
+
+      {/* Show Database Button */}
+      {!showForm && !showFoodDatabase && (
+        <button
+          onClick={() => setShowFoodDatabase(true)}
+          className="w-full bg-white rounded-lg shadow p-3 text-center text-sm text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
+        >
+          <Book className="w-4 h-4" />
+          Show Food Database
+        </button>
       )}
 
       {showForm && (
@@ -375,6 +491,9 @@ const FoodLog = () => {
               onClick={() => {
                 setShowForm(false)
                 setEditingEntry(null)
+                setSelectedFoodId(null)
+                setFoodSearch('')
+                setShowFoodDatabase(true)
                 setFormData({
                   date: format(new Date(), 'yyyy-MM-dd'),
                   time: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'),
@@ -384,6 +503,7 @@ const FoodLog = () => {
                   calories: '',
                   volume_ml: '',
                   notes: '',
+                  save_to_database: true,
                 })
               }}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"

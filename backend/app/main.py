@@ -7,7 +7,7 @@ from app.config import settings
 from app.database import init_db
 from app.scheduler import start_scheduler, stop_scheduler
 from app.routers import (
-    garmin, food, medication, sickness,
+    garmin, food, food_database, medication, sickness,
     seizure, notes, water, dashboard, export, user
 )
 
@@ -66,6 +66,7 @@ app.add_middleware(
 app.include_router(user.router, prefix=settings.api_prefix)
 app.include_router(garmin.router, prefix=settings.api_prefix)
 app.include_router(food.router, prefix=settings.api_prefix)
+app.include_router(food_database.router, prefix=settings.api_prefix)
 app.include_router(medication.router, prefix=settings.api_prefix)
 app.include_router(sickness.router, prefix=settings.api_prefix)
 app.include_router(seizure.router, prefix=settings.api_prefix)

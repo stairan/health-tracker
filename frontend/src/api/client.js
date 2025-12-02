@@ -53,6 +53,15 @@ export const getFoodEntries = (startDate, endDate, mealType = null) =>
 export const updateFoodEntry = (id, data) => apiClient.put(`/food/${id}`, data);
 export const deleteFoodEntry = (id) => apiClient.delete(`/food/${id}`);
 
+// Food Database
+export const getFoodDatabase = (search = null, isDrink = null, favoritesOnly = false, sortBy = 'frequent') =>
+  apiClient.get('/food-database/', { params: { search, is_drink: isDrink, favorites_only: favoritesOnly, sort_by: sortBy } });
+export const getFoodItem = (id) => apiClient.get(`/food-database/${id}`);
+export const createFoodItem = (data) => apiClient.post('/food-database/', data);
+export const updateFoodItem = (id, data) => apiClient.put(`/food-database/${id}`, data);
+export const deleteFoodItem = (id) => apiClient.delete(`/food-database/${id}`);
+export const toggleFoodFavorite = (id) => apiClient.post(`/food-database/${id}/favorite`);
+
 // Medications
 export const createMedication = (data) => apiClient.post('/medications/', data);
 export const getMedications = (startDate, endDate) =>
