@@ -4,7 +4,6 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
 import logging
 
 from app.models import (
@@ -103,12 +102,6 @@ class ExportService:
                 "user_id": self.user_id
             }
         }
-
-        date_filter = and_(
-            lambda model: model.date >= start_date,
-            lambda model: model.date <= end_date,
-            lambda model: model.user_id == self.user_id
-        )
 
         if include_garmin:
             garmin_data = self.db.query(GarminData).filter(

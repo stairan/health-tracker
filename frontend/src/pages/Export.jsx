@@ -15,8 +15,9 @@ const Export = () => {
     onSuccess: (response) => {
       alert(`Data exported successfully! File: ${response.data.file_path}`)
     },
-    onError: () => {
-      alert('Export failed. Please try again.')
+    onError: (error) => {
+      const message = error.response?.data?.detail || error.message || 'Unknown error'
+      alert(`Export failed: ${message}`)
     },
   })
 
@@ -39,6 +40,7 @@ const Export = () => {
       include_seizures: true,
       include_notes: true,
       include_water: true,
+      include_health_events: true,
     })
   }
 

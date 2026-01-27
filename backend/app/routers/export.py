@@ -39,7 +39,8 @@ def export_data(
         include_sickness=request.include_sickness,
         include_seizures=request.include_seizures,
         include_notes=request.include_notes,
-        include_water=request.include_water
+        include_water=request.include_water,
+        include_health_events=request.include_health_events
     )
 
     if not result["success"]:
