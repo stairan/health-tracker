@@ -91,6 +91,14 @@ export const getSeizures = (startDate, endDate) =>
 export const updateSeizure = (id, data) => apiClient.put(`/seizures/${id}`, data);
 export const deleteSeizure = (id) => apiClient.delete(`/seizures/${id}`);
 
+// Health Events
+export const createHealthEvent = (data) => apiClient.post('/health-events/', data);
+export const getHealthEvents = (startDate, endDate, eventType = null) =>
+  apiClient.get('/health-events/', { params: { start_date: startDate, end_date: endDate, event_type: eventType } });
+export const getHealthEvent = (id) => apiClient.get(`/health-events/${id}`);
+export const updateHealthEvent = (id, data) => apiClient.put(`/health-events/${id}`, data);
+export const deleteHealthEvent = (id) => apiClient.delete(`/health-events/${id}`);
+
 // Notes
 export const createDailyNote = (data) => apiClient.post('/notes/', data);
 export const getDailyNotes = (startDate, endDate) =>

@@ -7,7 +7,8 @@ import {
   Thermometer,
   FileDown,
   Settings as SettingsIcon,
-  Droplet
+  Droplet,
+  ClipboardList
 } from 'lucide-react'
 
 const Navigation = () => {
@@ -19,6 +20,7 @@ const Navigation = () => {
     { path: '/medications', icon: Pill, label: 'Medications' },
     { path: '/seizures', icon: Activity, label: 'Seizures' },
     { path: '/sickness', icon: Thermometer, label: 'Sickness' },
+    { path: '/health-events', icon: ClipboardList, label: 'Health Events' },
     { path: '/garmin', icon: Droplet, label: 'Garmin Data' },
     { path: '/export', icon: FileDown, label: 'Export' },
     { path: '/settings', icon: SettingsIcon, label: 'Settings' },

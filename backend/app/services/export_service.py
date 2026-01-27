@@ -9,7 +9,7 @@ import logging
 
 from app.models import (
     GarminData, Activity, FoodEntry, Medication,
-    Sickness, Seizure, DailyNote, WaterIntake, User
+    Sickness, Seizure, DailyNote, WaterIntake, User, HealthEvent
 )
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,8 @@ class ExportService:
         include_sickness: bool = True,
         include_seizures: bool = True,
         include_notes: bool = True,
-        include_water: bool = True
+        include_water: bool = True,
+        include_health_events: bool = True
     ) -> Dict:
         """
         Export health data for a date range in specified format.
@@ -54,7 +55,8 @@ class ExportService:
             data = self._collect_data(
                 start_date, end_date,
                 include_garmin, include_food, include_medications,
-                include_sickness, include_seizures, include_notes, include_water
+                include_sickness, include_seizures, include_notes, include_water,
+                include_health_events
             )
 
             # Generate filename
@@ -90,7 +92,7 @@ class ExportService:
         self, start_date: date, end_date: date,
         include_garmin: bool, include_food: bool, include_medications: bool,
         include_sickness: bool, include_seizures: bool, include_notes: bool,
-        include_water: bool
+        include_water: bool, include_health_events: bool
     ) -> Dict:
         """Collect all requested data from database."""
         data = {
@@ -170,6 +172,14 @@ class ExportService:
                 WaterIntake.date <= end_date
             ).all()
             data["water_intake"] = [self._model_to_dict(w) for w in water]
+
+        if include_health_events:
+            health_events = self.db.query(HealthEvent).filter(
+                HealthEvent.user_id == self.user_id,
+                HealthEvent.date >= start_date,
+                HealthEvent.date <= end_date
+            ).all()
+            data["health_events"] = [self._model_to_dict(h) for h in health_events]
 
         return data
 
@@ -273,6 +283,7 @@ The data includes:
 6. **Seizures**: Epileptic seizure events with severity, triggers, and context
 7. **Daily Notes**: Mood and energy levels with journal entries
 8. **Water Intake**: Hydration tracking throughout the day
+9. **Health Events**: Significant health events including surgeries, hospitalizations, vaccinations, doctor visits, diagnoses, procedures, and test results
 
 Please analyze this data and provide insights on:
 

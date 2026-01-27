@@ -394,6 +394,7 @@ class ExportRequest(BaseModel):
     include_seizures: bool = True
     include_notes: bool = True
     include_water: bool = True
+    include_health_events: bool = True
     format: str = Field("json", description="json, csv, or parquet")
 
 
@@ -434,3 +435,43 @@ class DateRangeSummary(BaseModel):
     total_seizures: int = 0
     total_medications: int = 0
     days_with_sickness: int = 0
+
+
+# Health Event Schemas
+class HealthEventBase(BaseModel):
+    date: date
+    time: Optional[datetime] = None
+    event_type: str = Field(..., description="surgery, hospitalization, doctor_visit, vaccination, diagnosis, procedure, test_result, other")
+    title: str
+    description: Optional[str] = None
+    location: Optional[str] = None
+    provider: Optional[str] = None
+    follow_up_date: Optional[date] = None
+    outcome: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class HealthEventCreate(HealthEventBase):
+    pass
+
+
+class HealthEventUpdate(BaseModel):
+    date: Optional[date] = None
+    time: Optional[datetime] = None
+    event_type: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    location: Optional[str] = None
+    provider: Optional[str] = None
+    follow_up_date: Optional[date] = None
+    outcome: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class HealthEvent(HealthEventBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

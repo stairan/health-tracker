@@ -5,6 +5,7 @@ import FoodLog from './pages/FoodLog'
 import Medications from './pages/Medications'
 import Seizures from './pages/Seizures'
 import Sickness from './pages/Sickness'
+import HealthEvents from './pages/HealthEvents'
 import GarminData from './pages/GarminData'
 import Export from './pages/Export'
 import Settings from './pages/Settings'
@@ -18,6 +19,7 @@ function App() {
         <Route path="medications" element={<Medications />} />
         <Route path="seizures" element={<Seizures />} />
         <Route path="sickness" element={<Sickness />} />
+        <Route path="health-events" element={<HealthEvents />} />
         <Route path="garmin" element={<GarminData />} />
         <Route path="export" element={<Export />} />
         <Route path="settings" element={<Settings />} />

@@ -8,7 +8,7 @@ from app.database import init_db
 from app.scheduler import start_scheduler, stop_scheduler
 from app.routers import (
     garmin, food, food_database, medication, sickness,
-    seizure, notes, water, dashboard, export, user
+    seizure, notes, water, dashboard, export, user, health_event
 )
 
 # Configure logging
@@ -74,6 +74,7 @@ app.include_router(notes.router, prefix=settings.api_prefix)
 app.include_router(water.router, prefix=settings.api_prefix)
 app.include_router(dashboard.router, prefix=settings.api_prefix)
 app.include_router(export.router, prefix=settings.api_prefix)
+app.include_router(health_event.router, prefix=settings.api_prefix)
 
 
 @app.get("/")

@@ -330,3 +330,33 @@ class GarminSyncLog(Base):
 
     # Relationships
     user = relationship("User")
+
+
+class HealthEvent(Base):
+    """Health events like surgeries, hospitalizations, vaccinations, doctor visits, etc."""
+    __tablename__ = "health_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    date = Column(Date, nullable=False, index=True)
+    time = Column(DateTime)  # Optional - some events have specific times
+
+    # Event details
+    event_type = Column(String, nullable=False)  # surgery, hospitalization, doctor_visit, vaccination, diagnosis, procedure, test_result, other
+    title = Column(String, nullable=False)  # Short description
+    description = Column(Text)  # Detailed description
+
+    # Location and provider
+    location = Column(String)  # Hospital/clinic name
+    provider = Column(String)  # Doctor/provider name
+
+    # Follow-up and outcome
+    follow_up_date = Column(Date)  # Scheduled follow-up date
+    outcome = Column(String)  # Result/outcome of the event
+
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User")
