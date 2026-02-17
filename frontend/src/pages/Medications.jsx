@@ -117,7 +117,7 @@ const Medications = () => {
     setShowForm(false)
     setEditingEntry(null)
     setFormData({
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: selectedDate,
       timeOfDay: format(new Date(), 'HH:mm'),
       medication_name: '',
       dosage: '',

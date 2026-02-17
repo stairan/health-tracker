@@ -193,6 +193,7 @@ class MedicationCreate(MedicationBase):
 
 
 class MedicationUpdate(BaseModel):
+    date: Optional[date] = None
     time: Optional[datetime] = None
     medication_name: Optional[str] = None
     dosage: Optional[str] = None
