@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
+import datetime as dt
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 
@@ -193,7 +194,7 @@ class MedicationCreate(MedicationBase):
 
 
 class MedicationUpdate(BaseModel):
-    date: Optional[date] = None
+    date: Optional[dt.date] = None
     time: Optional[datetime] = None
     medication_name: Optional[str] = None
     dosage: Optional[str] = None
