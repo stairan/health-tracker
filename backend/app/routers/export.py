@@ -40,7 +40,8 @@ def export_data(
         include_seizures=request.include_seizures,
         include_notes=request.include_notes,
         include_water=request.include_water,
-        include_health_events=request.include_health_events
+        include_health_events=request.include_health_events,
+        garmin_full_raw_data=request.garmin_full_raw_data
     )
 
     if not result["success"]:

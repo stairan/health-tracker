@@ -398,6 +398,7 @@ class ExportRequest(BaseModel):
     include_water: bool = True
     include_health_events: bool = True
     format: str = Field("json", description="json, csv, or parquet")
+    garmin_full_raw_data: bool = Field(False, description="Include full Garmin raw data with time-series arrays. Disabled by default for smaller, AI-friendly exports.")
 
 
 class ExportResponse(BaseModel):

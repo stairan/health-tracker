@@ -8,6 +8,7 @@ const Export = () => {
   const [startDate, setStartDate] = useState(format(new Date(new Date().setMonth(new Date().getMonth() - 1)), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [exportFormat, setExportFormat] = useState('json')
+  const [garminFullRawData, setGarminFullRawData] = useState(false)
   const [aiPrompt, setAiPrompt] = useState(null)
 
   const exportMutation = useMutation({
@@ -48,6 +49,7 @@ const Export = () => {
       include_notes: true,
       include_water: true,
       include_health_events: true,
+      garmin_full_raw_data: garminFullRawData,
     })
   }
 
@@ -91,6 +93,22 @@ const Export = () => {
               <option value="parquet">Parquet (Data Analysis)</option>
             </select>
           </div>
+        </div>
+
+        <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <input
+            type="checkbox"
+            id="garminFullRawData"
+            checked={garminFullRawData}
+            onChange={(e) => setGarminFullRawData(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+          <label htmlFor="garminFullRawData" className="text-sm text-gray-700">
+            <span className="font-medium">Include full Garmin raw data</span>
+            <span className="block text-gray-500">
+              By default, per-minute time-series sensor data (heart rate, stress, SpO2, sleep movement) is stripped from the export to reduce file size by ~90%. Enable this to include the complete raw Garmin API data.
+            </span>
+          </label>
         </div>
 
         <div className="flex space-x-3">

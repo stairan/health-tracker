@@ -35,7 +35,8 @@ class ExportService:
         include_seizures: bool = True,
         include_notes: bool = True,
         include_water: bool = True,
-        include_health_events: bool = True
+        include_health_events: bool = True,
+        garmin_full_raw_data: bool = False
     ) -> Dict:
         """
         Export health data for a date range in specified format.
@@ -55,7 +56,7 @@ class ExportService:
                 start_date, end_date,
                 include_garmin, include_food, include_medications,
                 include_sickness, include_seizures, include_notes, include_water,
-                include_health_events
+                include_health_events, garmin_full_raw_data
             )
 
             # Generate filename
@@ -91,7 +92,8 @@ class ExportService:
         self, start_date: date, end_date: date,
         include_garmin: bool, include_food: bool, include_medications: bool,
         include_sickness: bool, include_seizures: bool, include_notes: bool,
-        include_water: bool, include_health_events: bool
+        include_water: bool, include_health_events: bool,
+        garmin_full_raw_data: bool = False
     ) -> Dict:
         """Collect all requested data from database."""
         data = {
@@ -109,7 +111,10 @@ class ExportService:
                 GarminData.date >= start_date,
                 GarminData.date <= end_date
             ).all()
-            data["garmin_data"] = [self._model_to_dict(g) for g in garmin_data]
+            garmin_dicts = [self._model_to_dict(g) for g in garmin_data]
+            if not garmin_full_raw_data:
+                garmin_dicts = [self._slim_garmin_raw_data(g) for g in garmin_dicts]
+            data["garmin_data"] = garmin_dicts
 
             activities = self.db.query(Activity).filter(
                 Activity.user_id == self.user_id,
@@ -175,6 +180,93 @@ class ExportService:
             data["health_events"] = [self._model_to_dict(h) for h in health_events]
 
         return data
+
+    def _slim_garmin_raw_data(self, entry: Dict) -> Dict:
+        """
+        Strip high-frequency time-series arrays from a Garmin data entry's raw_data,
+        keeping only aggregated summaries. Reduces per-day size by ~90%.
+        """
+        import copy
+        raw = entry.get("raw_data")
+        if not raw or not isinstance(raw, dict):
+            return entry
+
+        entry = copy.deepcopy(entry)
+        raw = entry["raw_data"]
+
+        # --- daily_summary: remove internal API metadata and duplicated event list ---
+        ds = raw.get("daily_summary")
+        if isinstance(ds, dict):
+            for key in (
+                "uuid", "userProfileId", "userDailySummaryId", "rule",
+                "privacyProtected", "source",
+                "wellnessStartTimeGmt", "wellnessStartTimeLocal",
+                "wellnessEndTimeGmt", "wellnessEndTimeLocal",
+                "durationInMilliseconds", "lastSyncTimestampGMT",
+                "bodyBatteryActivityEventList",
+            ):
+                ds.pop(key, None)
+            feedback = ds.get("bodyBatteryDynamicFeedbackEvent")
+            if isinstance(feedback, dict):
+                feedback.pop("feedbackLongType", None)
+
+        # --- heart_rate: drop per-minute time-series, keep summary stats ---
+        hr = raw.get("heart_rate")
+        if isinstance(hr, dict):
+            for key in ("heartRateValues", "heartRateValueDescriptors",
+                        "userProfilePK", "startTimestampGMT", "endTimestampGMT",
+                        "startTimestampLocal", "endTimestampLocal"):
+                hr.pop(key, None)
+
+        # --- stress: drop both time-series arrays, keep summary stats ---
+        stress = raw.get("stress")
+        if isinstance(stress, dict):
+            for key in (
+                "stressValuesArray", "stressValueDescriptorsDTOList",
+                "bodyBatteryValuesArray", "bodyBatteryValueDescriptorsDTOList",
+                "userProfilePK", "startTimestampGMT", "endTimestampGMT",
+                "startTimestampLocal", "endTimestampLocal",
+                "stressChartValueOffset", "stressChartYAxisOrigin",
+            ):
+                stress.pop(key, None)
+
+        # --- sleep: drop all per-epoch sensor arrays, keep stage transitions and summaries ---
+        sleep = raw.get("sleep")
+        if isinstance(sleep, dict):
+            for key in (
+                "sleepMovement",
+                "wellnessEpochSPO2DataDTOList",
+                "wellnessEpochRespirationDataDTOList",
+                "sleepHeartRate",
+                "sleepStress",
+                "sleepBodyBattery",
+                "hrvData",
+                "breathingDisruptionData",
+            ):
+                sleep.pop(key, None)
+            # Trim dailySleepDTO: remove Garmin's proprietary need-estimation objects
+            dto = sleep.get("dailySleepDTO")
+            if isinstance(dto, dict):
+                for key in ("sleepNeed", "nextSleepNeed", "userProfilePK",
+                            "sleepResultType", "deviceRemCapable", "retro",
+                            "sleepFromDevice", "ageGroup"):
+                    dto.pop(key, None)
+
+        # --- body_battery: drop time-series values array, keep event impacts ---
+        bb_list = raw.get("body_battery")
+        if isinstance(bb_list, list):
+            for bb in bb_list:
+                if isinstance(bb, dict):
+                    for key in ("bodyBatteryValuesArray",
+                                "bodyBatteryValueDescriptorDTOList",
+                                "startTimestampGMT", "endTimestampGMT",
+                                "startTimestampLocal", "endTimestampLocal"):
+                        bb.pop(key, None)
+                    feedback = bb.get("bodyBatteryDynamicFeedbackEvent")
+                    if isinstance(feedback, dict):
+                        feedback.pop("feedbackLongType", None)
+
+        return entry
 
     def _model_to_dict(self, model) -> Dict:
         """Convert SQLAlchemy model to dictionary."""
