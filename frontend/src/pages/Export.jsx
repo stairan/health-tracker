@@ -13,7 +13,14 @@ const Export = () => {
   const exportMutation = useMutation({
     mutationFn: (data) => exportData(data),
     onSuccess: (response) => {
-      alert(`Data exported successfully! File: ${response.data.file_path}`)
+      const filePath = response.data.file_path
+      const filename = filePath.split('/').pop()
+      const link = document.createElement('a')
+      link.href = `/api/v1/export/download/${encodeURIComponent(filename)}`
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     },
     onError: (error) => {
       const message = error.response?.data?.detail || error.message || 'Unknown error'
